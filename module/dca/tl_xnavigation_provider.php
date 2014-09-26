@@ -1,10 +1,13 @@
 <?php
 
-$GLOBALS['TL_DCA']['tl_xnavigation_provider']['metapallets']['metamodel'] = array(
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['metapalettes']['metamodels extends default'] = array(
     'metamodels' => array('mm_metamodel'),
 );
 
-$GLOBALS['TL_DCA']['tl_xnavigation_provider']['metasubselectpalletes']['mm_metamodel'] = array(
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['palettes']['__selector'][] = 'type';
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['type']['eval']['submitOnChange'] = true;
+
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['metasubselectpalettes']['mm_metamodel'] = array(
     '!' => array(
         'mm_filter',
         'mm_sort_by',
@@ -32,7 +35,7 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_metamodel'] = array
         'submitOnChange'     => true,
         'tl_class'           => 'w50'
     ),
-    'sql'              => "varchar(64) NOT NULL default ''"
+    'sql'              => "varchar(64) NOT NULL default '0'"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_filter'] = array
@@ -51,7 +54,7 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_filter'] = array
         'submitOnChange'     => true,
         'tl_class'           => 'w50'
     ),
-    'sql'              => "int(11) NOT NULL default ''"
+    'sql'              => "int(11) NOT NULL default '0'"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_sort_by'] = array
@@ -69,7 +72,7 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_sort_by'] = array
         'submitOnChange'     => true,
         'tl_class'           => 'w50'
     ),
-    'sql'              => "int(11) NOT NULL default ''"
+    'sql'              => "int(11) NOT NULL default '0'"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_sort_direction'] = array
@@ -78,12 +81,13 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_sort_direction'] = a
     'inputType'        => 'select',
     'filter'           => true,
     'options'          => array('ASC', 'DESC'),
+    'default'          => 'ASC',
     'reference'        => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_sorting'],
     'eval'             => array(
         'submitOnChange'     => true,
         'tl_class'           => 'w50'
     ),
-    'sql'              => "int(11) NOT NULL default ''"
+    'sql'              => "varchar(4) NOT NULL default ''"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_label_attributes'] = array
@@ -99,7 +103,7 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_label_attributes'] =
         'submitOnChange'     => true,
         'tl_class'           => 'clr'
     ),
-    'sql'              => "int(11) NOT NULL default ''"
+    'sql'              => "mediumblob NULL"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_label_pattern'] = array
@@ -112,7 +116,7 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_label_pattern'] = ar
         'submitOnChange'     => true,
         'tl_class'           => 'w50'
     ),
-    'sql'              => "int(11) NOT NULL default ''"
+    'sql'              => "varchar(255) NOT NULL default ''"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_title_attributes'] = array
@@ -128,7 +132,7 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_title_attributes'] =
         'submitOnChange'     => true,
         'tl_class'           => 'clr'
     ),
-    'sql'              => "int(11) NOT NULL default ''"
+    'sql'              => "mediumblob NULL"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_title_pattern'] = array
@@ -141,5 +145,5 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_title_pattern'] = ar
         'submitOnChange'     => true,
         'tl_class'           => 'w50'
     ),
-    'sql'              => "int(11) NOT NULL default ''"
+    'sql'              => "varchar(255) NOT NULL default ''"
 );
