@@ -9,6 +9,7 @@ use Bit3\FlexiTree\Event\CreateItemEvent;
 use MetaModels\Filter\Setting\ICollection as MetaModelsFilterCollection;
 use MetaModels\IItem;
 use MetaModels\IMetaModel;
+use MetaModels\Render\Setting\ICollection as MetaModelsRenderSetting;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class MetaModelsProvider extends \Controller implements EventSubscriberInterface
@@ -29,9 +30,9 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
     private $labelAttributes = array();
 
     /**
-     * @var string
+     * @var string|bool
      */
-    private $labelPattern = '%s';
+    private $labelPattern = false;
 
     /**
      * @var array
@@ -39,9 +40,9 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
     private $titleAttributes = array();
 
     /**
-     * @var string
+     * @var string|bool
      */
-    private $titlePattern = '%s';
+    private $titlePattern = false;
 
     /**
      * @var string
@@ -61,12 +62,22 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
     /**
      * @var string
      */
-    private $sortDirection = 'asc';
+    private $sortDirection = 'ASC';
 
     /**
      * @var array
      */
     private $filterParams = array();
+
+    /**
+     * @var array|IItem[]
+     */
+    protected static $cache = array();
+
+    /**
+     * @var MetaModelsRenderSetting
+     */
+    private $renderSetting;
 
 
     /**
@@ -84,7 +95,10 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
      */
     public static function create(IMetaModel $metaModel)
     {
+        $provider = new static();
+        $provider->setMetaModel($metaModel);
 
+        return $provider;
     }
 
 
@@ -192,7 +206,7 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
      * @param string $sortDirection
      * @return $this
      */
-    public function setSorting($sortBy, $sortDirection='asc')
+    public function setSorting($sortBy, $sortDirection='ASC')
     {
         $this->sortBy        = $sortBy;
         $this->sortDirection = $sortDirection;
@@ -259,7 +273,24 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         return $this->parentType;
     }
 
+    /**
+     * @return MetaModelsRenderSetting
+     */
+    public function getRenderSetting()
+    {
+        return $this->renderSetting;
+    }
 
+    /**
+     * @param MetaModelsRenderSetting $renderSetting
+     * @return $this
+     */
+    public function setRenderSetting(MetaModelsRenderSetting $renderSetting)
+    {
+        $this->renderSetting = $renderSetting;
+
+        return $this;
+    }
 
     /**
      * @param CollectItemsEvent $event
@@ -277,7 +308,10 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         $factory    = $event->getFactory();
 
         foreach($collection as $model) {
-            $factory->createItem('metamodels', $model, $item);
+            $name  = sprintf('%s:%s', $model->getMetaModel()->getTableName(), $model->get('id'));
+
+            static::$cache[$name] = $model;
+            $factory->createItem('metamodels', $name, $item);
         }
     }
 
@@ -288,17 +322,22 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
     public function createItem(CreateItemEvent $event)
     {
         $item = $event->getItem();
+        $name = $item->getName();
 
         if($item->getType() != 'metamodels') {
             return;
         }
 
-        /** @var IItem $model */
-        $model = $item->getName();
-        $name  = sprintf('%s:%s', $model->getMetaModel()->getTableName(), $model->get('id'));
+        $model = $this->loadModel($name);
+
+        if(!$model) {
+            return;
+        }
+
+        $value = $model->parseValue('text', $this->renderSetting);
+        var_dump($value);
 
         $item
-            ->setName($name)
             ->setLabel($this->generateLabel($model))
             ->setAttribute('title', $this->generateTitle($model))
             ->setExtra('model', $model);
@@ -318,7 +357,17 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
             $filter->addFilterRule($this->filter, $this->filterParams);
         }
 
-        return $this->metaModel->findByFilter($filter);
+        $sortBy = '';
+
+        if($this->sortBy) {
+            $attribute = $this->metaModel->getAttributeById($this->sortBy);
+
+            if($attribute) {
+                $sortBy = $attribute->getColName();
+            }
+        }
+
+        return $this->metaModel->findByFilter($filter, $sortBy, 0, 0, $this->sortDirection);
     }
 
 
@@ -328,13 +377,25 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
      */
     private function generateLabel(IItem $model)
     {
-        $value = array();
+        $values = array();
 
-        foreach($this->labelAttributes as $attribute) {
-            $value[] = $model->get($attribute);
+        foreach ($this->labelAttributes as $config) {
+            $attribute = $this->metaModel->getAttributeById($config['id']);
+
+            if(!$attribute) {
+                continue;
+            }
+
+            $values[]  = $model->get($attribute->getColName());
         }
 
-        $label = vsprintf($this->labelPattern, $value);
+        if ($this->labelPattern) {
+            $label = vsprintf($this->labelPattern, $values);
+        }
+        else {
+            $label = implode(' ', $values);
+        }
+
         $label = $this->replaceInsertTags($label);
 
         return $label;
@@ -347,14 +408,33 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
      */
     private function generateTitle(IItem $model)
     {
-        $value = array();
+        $values = array();
 
         if ($this->titleAttributes) {
-            foreach($this->titleAttributes as $attribute) {
-                $value[] = $model->get($attribute);
+            foreach($this->titleAttributes as $config) {
+                $attribute = $this->metaModel->getAttributeById($config['id']);
+
+                if (!$attribute) {
+                    continue;
+                }
+
+                $parsed = $model->parseAttribute($attribute->getColName(), $config['format'], $this->renderSetting);
+
+                if (isset($parsed[$config['format']])) {
+                    $values[] = isset($parsed[$config['format']]);
+                }
+                else {
+                    $values[] = $model->get($attribute->getColName());
+                }
             }
 
-            $label = vsprintf($this->titlePattern, $value);
+            if ($this->titlePattern) {
+                $label = vsprintf($this->titlePattern, $values);
+            }
+            else {
+                $label = implode(' ', $values);
+            }
+
             $label = $this->replaceInsertTags($label);
         }
         else {
@@ -362,6 +442,26 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         }
 
         return specialchars($label);
+    }
+
+
+    /**
+     * @param $name
+     * @return IItem|null
+     */
+    private function loadModel($name)
+    {
+        if(isset(static::$cache[$name])) {
+            return static::$cache[$name];
+        }
+
+        list($table, $id) = explode(':', $name, 2);
+
+        if($table != $this->metaModel->getTableName()) {
+            return null;
+        }
+
+        return $this->metaModel->findById($id);
     }
 
 } 

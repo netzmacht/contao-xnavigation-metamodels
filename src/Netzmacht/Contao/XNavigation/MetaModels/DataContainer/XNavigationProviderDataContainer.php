@@ -37,16 +37,19 @@ class XNavigationProviderDataContainer
      * @param \DataContainer $dataContainer
      * @return array
      */
-    public function getAttributeNames(\DataContainer $dataContainer)
+    public function getAttributeNames($dataContainer)
     {
         $options = array();
 
         if ($dataContainer->activeRecord->mm_metamodel) {
-            $metaModel  = $this->metaModelsFactory->byTableName($dataContainer->mm_metamodel);
-            $attributes = $metaModel->getAttributes();
+            $metaModel  = $this->metaModelsFactory->byId($dataContainer->activeRecord->mm_metamodel);
 
-            foreach($attributes as $name => $attribute) {
-                $options[$name] = $attribute->getName();
+            if($metaModel) {
+                $attributes = $metaModel->getAttributes();
+
+                foreach($attributes as $name => $attribute) {
+                    $options[$attribute->get('id')] = $attribute->getName();
+                }
             }
         }
 
@@ -64,6 +67,26 @@ class XNavigationProviderDataContainer
         $values         = array();
         $filterSettings = $database
             ->prepare('SELECT * FROM tl_metamodel_filter WHERE pid=? ORDER BY name')
+            ->execute($dataContainer->activeRecord->mm_metamodel);
+
+        while ($filterSettings->next()) {
+            $values[$filterSettings->id] = $filterSettings->name;
+        }
+
+        return $values;
+    }
+
+
+    /**
+     * @param \DataContainer $dataContainer
+     * @return array
+     */
+    public function getRenderSettings(\DataContainer $dataContainer)
+    {
+        $database       = \Database::getInstance();
+        $values         = array();
+        $filterSettings = $database
+            ->prepare('SELECT * FROM tl_metamodel_rendersettings WHERE pid=? ORDER BY name')
             ->execute($dataContainer->activeRecord->mm_metamodel);
 
         while ($filterSettings->next()) {

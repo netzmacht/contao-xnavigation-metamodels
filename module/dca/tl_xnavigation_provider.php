@@ -1,22 +1,68 @@
 <?php
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['metapalettes']['metamodels extends default'] = array(
+    'parent'     => array('mm_parent_type'),
     'metamodels' => array('mm_metamodel'),
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['palettes']['__selector'][] = 'type';
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['type']['eval']['submitOnChange'] = true;
 
+
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['metasubselectpalettes']['mm_parent_type'] = array(
+    'page' => array('mm_parent_page'),
+);
+
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['metasubselectpalettes']['mm_metamodel'] = array(
     '!' => array(
         'mm_filter',
         'mm_sort_by',
         'mm_sort_direction',
-        'mm_title_attributes',
-        'mm_title_pattern',
+        'mm_render_setting',
         'mm_label_attributes',
-        'mm_label_pattern'
+        'mm_label_use_pattern',
+        'mm_title_attributes',
+        'mm_title_use_pattern',
     ),
+);
+
+
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['metasubpalettes']['mm_label_use_pattern'] = array(
+    'mm_label_pattern'
+);
+
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['metasubpalettes']['mm_title_use_pattern'] = array(
+    'mm_title_pattern'
+);
+
+
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_parent_type'] = array
+(
+    'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_parent_type'],
+    'inputType'        => 'select',
+    'filter'           => true,
+    'options'          => array('page'),
+    'eval'             => array(
+        'includeBlankOption' => true,
+        'submitOnChange'     => true,
+        'tl_class'           => 'w50'
+    ),
+    'sql'              => "varchar(16) NOT NULL default ''"
+);
+
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_parent_page'] = array
+(
+    'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_parent_page'],
+    'inputType'        => 'pageTree',
+    'filter'           => true,
+    'reference'        => &$GLOBALS['TL_LANG']['xnavigation_provider'],
+    'eval'             => array(
+        'mandatory'          => true,
+        'chosen'             => true,
+        'submitOnChange'     => true,
+        'tl_class'           => 'clr'
+    ),
+    'sql'              => "int(64) NOT NULL default '0'"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_metamodel'] = array
@@ -45,7 +91,7 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_filter'] = array
     'filter'           => true,
     'options_callback' => array(
         'Netzmacht\Contao\XNavigation\MetaModels\DataContainer\XNavigationProviderDataContainer',
-        'getMetaModels'
+        'getFilterNames'
     ),
     'reference'        => &$GLOBALS['TL_LANG']['mm_filter'],
     'eval'             => array(
@@ -72,7 +118,7 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_sort_by'] = array
         'submitOnChange'     => true,
         'tl_class'           => 'w50'
     ),
-    'sql'              => "int(11) NOT NULL default '0'"
+    'sql'              => "varchar(11) NOT NULL default '0'"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_sort_direction'] = array
@@ -90,20 +136,56 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_sort_direction'] = a
     'sql'              => "varchar(4) NOT NULL default ''"
 );
 
-$GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_label_attributes'] = array
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_render_setting'] = array
 (
-    'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_label_attributes'],
-    'inputType'        => 'listWizard',
+    'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_render_setting'],
+    'inputType'        => 'select',
     'filter'           => true,
     'options_callback' => array(
         'Netzmacht\Contao\XNavigation\MetaModels\DataContainer\XNavigationProviderDataContainer',
-        'getAttributeNames'
+        'getRenderSettings'
     ),
     'eval'             => array(
-        'submitOnChange'     => true,
-        'tl_class'           => 'clr'
+        'chosen'             => true,
+        'includeBlankOption' => true,
+        'tl_class'           => 'w50'
     ),
-    'sql'              => "mediumblob NULL"
+    'sql'              => "int(11) NOT NULL default '0'"
+);
+
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_label_attributes'] = array
+(
+    'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_label_attributes'],
+    'inputType'        => 'multiColumnWizard',
+    'filter'           => true,
+    'eval'             => array(
+        'submitOnChange'     => true,
+        'tl_class'           => 'clr',
+        'columnFields' => array(
+            'id' => array(
+                'inputType' => 'select',
+                'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_label_attribute_id'],
+                'options_callback' => array(
+                    'Netzmacht\Contao\XNavigation\MetaModels\DataContainer\XNavigationProviderDataContainer',
+                    'getAttributeNames'
+                ),
+                'eval' => array(
+                    'style' => 'width: 300px',
+                ),
+            ),
+
+            'format' => array(
+                'inputType' => 'select',
+                'label'     => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_label_attribute_format'],
+                'options'   => array('raw', 'text', 'output'),
+                'eval'      => array(
+                    'style' => 'width: 150px',
+                )
+            ),
+        )
+    ),
+    'sql'              => "mediumblob NULL",
+
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_label_pattern'] = array
@@ -119,20 +201,62 @@ $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_label_pattern'] = ar
     'sql'              => "varchar(255) NOT NULL default ''"
 );
 
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_label_use_pattern'] = array
+(
+    'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_label_use_pattern'],
+    'inputType'        => 'checkbox',
+    'default'          => '%s',
+    'eval'             => array(
+        'submitOnChange'     => true,
+        'tl_class'           => 'clr w50 m12'
+    ),
+    'sql'              => "char(1) NOT NULL default ''"
+);
+
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_title_attributes'] = array
 (
     'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_title_attributes'],
-    'inputType'        => 'listWizard',
+    'inputType'        => 'multiColumnWizard',
     'filter'           => true,
-    'options_callback' => array(
-        'Netzmacht\Contao\XNavigation\MetaModels\DataContainer\XNavigationProviderDataContainer',
-        'getAttributeNames'
-    ),
     'eval'             => array(
         'submitOnChange'     => true,
-        'tl_class'           => 'clr'
+        'tl_class'           => 'clr',
+        'columnFields' => array(
+            'id' => array(
+                'inputType' => 'select',
+                'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_title_attributes'],
+                'options_callback' => array(
+                    'Netzmacht\Contao\XNavigation\MetaModels\DataContainer\XNavigationProviderDataContainer',
+                    'getAttributeNames'
+                ),
+                'eval' => array(
+                    'style' => 'width: 300px',
+                ),
+            ),
+
+            'format' => array(
+                'inputType' => 'select',
+                'label'     => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_label_attribute_format'],
+                'options'   => array('raw', 'text', 'output'),
+                'eval'      => array(
+                    'style' => 'width: 150px',
+                )
+            ),
+        )
     ),
-    'sql'              => "mediumblob NULL"
+    'sql'              => "mediumblob NULL",
+);
+
+$GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_title_use_pattern'] = array
+(
+    'label'            => &$GLOBALS['TL_LANG']['tl_xnavigation_provider']['mm_title_use_pattern'],
+    'inputType'        => 'checkbox',
+    'default'          => '%s',
+    'eval'             => array(
+        'submitOnChange'     => true,
+        'tl_class'           => 'clr w50 m12'
+    ),
+    'sql'              => "char(1) NOT NULL default ''"
 );
 
 $GLOBALS['TL_DCA']['tl_xnavigation_provider']['fields']['mm_title_pattern'] = array

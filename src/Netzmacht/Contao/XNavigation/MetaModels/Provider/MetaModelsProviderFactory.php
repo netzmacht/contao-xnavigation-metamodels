@@ -13,6 +13,7 @@ use Bit3\Contao\XNavigation\Event\CreateProviderEvent;
 use MetaModels\Factory as MetaModelsFactory;
 use MetaModels\Filter\Setting\Factory as MetaModelsFilterFactory;
 use MetaModels\Filter\Setting\ICollection as MetaModelsFilterCollection;
+use MetaModels\Render\Setting\Factory;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class MetaModelsProviderFactory implements EventSubscriberInterface
@@ -47,10 +48,13 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
             return;
         }
 
+        $labelPattern = $model->mm_label_use_pattern ? $model->mm_label_pattern : false;
+        $titlePattern = $model->mm_title_use_pattern ? $model->mm_title_pattern : false;
+
         $provider = MetaModelsProvider::create($metaModel)
-            ->setParent($model->mm_parent_type, $model->mm_parent_id)
-            ->setLabel(deserialize($model->mm_label_attributes, true), $model->mm_label_pattern)
-            ->setTitle(deserialize($model->mm_title_attributes, true), $model->mm_title_pattern);
+            ->setParent($model->mm_parent_type, $model->mm_parent_page)
+            ->setLabel(deserialize($model->mm_label_attributes, true), $labelPattern)
+            ->setTitle(deserialize($model->mm_title_attributes, true), $titlePattern);
 
         if ($model->mm_filter) {
             $filter = MetaModelsFilterFactory::byId($model->mm_filter);
@@ -61,10 +65,16 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
             }
         }
 
-        if ($model->mm_sorting) {
-            $provider->setSorting($model->mm_sort_by, $model->mm_sort_direction);
+        if($model->mm_render_setting) {
+            $renderSetting = Factory::byId($metaModel, $model->mm_render_setting);
+            $provider->setRenderSetting($renderSetting);
         }
 
+        if ($model->mm_sort_by) {
+            $provider->setSorting($model->mm_sort_by, $model->mm_sort_direction ?: 'ASC');
+        }
+
+        $event->setProvider($provider);
     }
 
 
