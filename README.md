@@ -17,8 +17,10 @@ Installation
 Usage
 ----------
 
-* Create a render setting for the metamodel. this will be used to render the navigation link.
-* **Important**: Choose one of the template `metamodel_xnav_item` or `metamodel_xnav_item_plain`
+* Create a render setting for the metamodel. It will be used to render the navigation link.
+* **Important**: 
+  * A jump to page is required to generate the url
+  * Choose one of the template `metamodel_xnav_item` or `metamodel_xnav_item_plain`. They only render one item istead of an item list
 * Create a new item provider for the metamodel
 * Choose the parent page and the created render setting.
 * Add the created provider to you menu
