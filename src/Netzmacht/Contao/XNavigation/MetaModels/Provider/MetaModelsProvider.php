@@ -330,7 +330,8 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
             }
         }
 
-        return $this->metaModel->findByFilter($filter, $sortBy, 0, 0, $this->sortDirection, $this->getAttributeNames());
+        // TODO: Should we limit the attributes? What about translated ones? Con: Conditions need access to other attributes
+        return $this->metaModel->findByFilter($filter, $sortBy, 0, 0, $this->sortDirection /*, $this->getAttributeNames()*/);
     }
 
 

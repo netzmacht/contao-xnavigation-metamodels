@@ -6,7 +6,7 @@
  * Time: 19:55
  */
 
-namespace Netzmacht\Contao\XNavigation\MetaModels\Provider;
+namespace Netzmacht\Contao\XNavigation\MetaModels;
 
 
 use Bit3\Contao\XNavigation\Event\CreateProviderEvent;
@@ -14,6 +14,7 @@ use MetaModels\Factory as MetaModelsFactory;
 use MetaModels\Filter\Setting\Factory as MetaModelsFilterFactory;
 use MetaModels\Filter\Setting\ICollection as MetaModelsFilterCollection;
 use MetaModels\Render\Setting\Factory;
+use Netzmacht\Contao\XNavigation\MetaModels\Provider\MetaModelsProvider;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class MetaModelsProviderFactory implements EventSubscriberInterface
