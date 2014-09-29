@@ -48,13 +48,15 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
             return;
         }
 
-        $labelPattern = $model->mm_label_use_pattern ? $model->mm_label_pattern : false;
-        $titlePattern = $model->mm_title_use_pattern ? $model->mm_title_pattern : false;
-
         $provider = MetaModelsProvider::create($metaModel)
-            ->setParent($model->mm_parent_type, $model->mm_parent_page)
-            ->setLabel(deserialize($model->mm_label_attributes, true), $labelPattern)
-            ->setTitle(deserialize($model->mm_title_attributes, true), $titlePattern);
+            ->setParent($model->mm_parent_type, $model->mm_parent_page);
+
+        $attributeMappings = deserialize($model->mm_attributes, true);
+        foreach ($attributeMappings as $config) {
+            if($config['id'] && $config['html']) {
+                $provider->addAttributeMapping($config['id'], $config['html'], $config['type'], $config['format']);
+            }
+        }
 
         if ($model->mm_filter) {
             $filter = MetaModelsFilterFactory::byId($model->mm_filter);

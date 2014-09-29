@@ -6,88 +6,87 @@ namespace Netzmacht\Contao\XNavigation\MetaModels\Provider;
 use Bit3\Contao\XNavigation\XNavigationEvents;
 use Bit3\FlexiTree\Event\CollectItemsEvent;
 use Bit3\FlexiTree\Event\CreateItemEvent;
+use Bit3\FlexiTree\ItemInterface;
+use MetaModels\Attribute\IAttribute;
 use MetaModels\Filter\Setting\ICollection as MetaModelsFilterCollection;
+use MetaModels\Filter\Setting\Factory as MetaModelsFilterFactory;
 use MetaModels\IItem;
 use MetaModels\IMetaModel;
 use MetaModels\Render\Setting\ICollection as MetaModelsRenderSetting;
+use MetaModels\Render\Template;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class MetaModelsProvider extends \Controller implements EventSubscriberInterface
 {
+    const ATTRIBUTE_TYPE_LABEL = 'label';
+    const ATTRIBUTE_TYPE_LINK  = 'link';
+    const ATTRIBUTE_TYPE_ITEM  = 'text';
+
     /**
      * @var IMetaModel
      */
-    private $metaModel;
+    protected $metaModel;
 
     /**
      * @var MetaModelsFilterCollection
      */
-    private $filter;
-
-    /**
-     * @var array
-     */
-    private $labelAttributes = array();
-
-    /**
-     * @var string|bool
-     */
-    private $labelPattern = false;
-
-    /**
-     * @var array
-     */
-    private $titleAttributes = array();
-
-    /**
-     * @var string|bool
-     */
-    private $titlePattern = false;
+    protected $filter;
 
     /**
      * @var string
      */
-    private $sortBy;
+    protected $sortBy;
 
     /**
      * @var string
      */
-    private $parentType;
+    protected $parentType;
 
     /**
      * @var int|string
      */
-    private $parentName;
+    protected $parentName;
 
     /**
      * @var string
      */
-    private $sortDirection = 'ASC';
+    protected $sortDirection = 'ASC';
 
     /**
      * @var array
      */
-    private $filterParams = array();
+    protected $filterParams = array();
+
+    /**
+     * @var MetaModelsRenderSetting
+     */
+    protected $renderSetting;
+
+
+    /**
+     * @var array
+     */
+    protected $attributeMapping = array(
+        MetaModelsProvider::ATTRIBUTE_TYPE_ITEM  => array(),
+        MetaModelsProvider::ATTRIBUTE_TYPE_LINK  => array(),
+        MetaModelsProvider::ATTRIBUTE_TYPE_LABEL => array(),
+    );
 
     /**
      * @var array|IItem[]
      */
     protected static $cache = array();
 
-    /**
-     * @var MetaModelsRenderSetting
-     */
-    private $renderSetting;
-
 
     /**
-     *
+     * @param IMetaModel $metaModel
      */
-    protected function __construct()
+    public function __construct(IMetaModel $metaModel)
     {
         parent::__construct();
-    }
 
+        $this->metaModel = $metaModel;
+    }
 
     /**
      * @param IMetaModel $metaModel
@@ -95,13 +94,10 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
      */
     public static function create(IMetaModel $metaModel)
     {
-        $provider = new static();
-        $provider->setMetaModel($metaModel);
+        $provider = new static($metaModel);
 
         return $provider;
     }
-
-
 
     /**
      * {@inheritdoc}
@@ -136,51 +132,11 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
     }
 
     /**
-     * @return array
-     */
-    public function getLabelAttributes()
-    {
-        return $this->labelAttributes;
-    }
-
-    /**
-     * @param array $attributes
-     * @param $pattern
-     * @return $this
-     */
-    public function setLabel(array $attributes, $pattern='%s')
-    {
-        $this->labelAttributes = $attributes;
-        $this->labelPattern    = $pattern;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getLabelPattern()
-    {
-        return $this->labelPattern;
-    }
-
-    /**
      * @return IMetaModel
      */
     public function getMetaModel()
     {
         return $this->metaModel;
-    }
-
-    /**
-     * @param IMetaModel $metaModel
-     * @return $this
-     */
-    public function setMetaModel($metaModel)
-    {
-        $this->metaModel = $metaModel;
-
-        return $this;
     }
 
     /**
@@ -191,7 +147,6 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         return $this->sortBy;
     }
 
-
     /**
      * @return string
      */
@@ -199,7 +154,6 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
     {
         return $this->sortDirection;
     }
-
 
     /**
      * @param $sortBy
@@ -213,35 +167,6 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
 
         return $this;
     }
-
-    /**
-     * @return array
-     */
-    public function getTitleAttributes()
-    {
-        return $this->titleAttributes;
-    }
-
-    /**
-     * @param array $attributes
-     * @return $this
-     */
-    public function setTitle($attributes, $pattern='%s')
-    {
-        $this->titleAttributes = $attributes;
-        $this->titlePattern    = $pattern;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getTitlePattern()
-    {
-        return $this->titlePattern;
-    }
-
 
     /**
      * @param int|string $type
@@ -263,7 +188,6 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
     {
         return $this->parentName;
     }
-
 
     /**
      * @return string
@@ -293,6 +217,33 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
     }
 
     /**
+     * @param $attributeId
+     * @param $htmlAttribute
+     * @param string $attributeType
+     * @param string $outputFormat
+     *
+     * @return $this
+     */
+    public function addAttributeMapping(
+        $attributeId,
+        $htmlAttribute,
+        $attributeType = MetaModelsProvider::ATTRIBUTE_TYPE_ITEM,
+        $outputFormat = 'text'
+    ) {
+        $attribute = $this->metaModel->getAttributeById($attributeId);
+
+        if($attribute) {
+            $this->attributeMapping[$attributeType][$htmlAttribute] = array(
+                'attribute' => $attribute,
+                'format'    => $outputFormat
+            );
+        }
+
+        return $this;
+    }
+
+    /**
+     * Collect all metamodels items and create navigation items.
      * @param CollectItemsEvent $event
      */
     public function collectItems(CollectItemsEvent $event)
@@ -308,15 +259,15 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         $factory    = $event->getFactory();
 
         foreach($collection as $model) {
-            $name  = sprintf('%s:%s', $model->getMetaModel()->getTableName(), $model->get('id'));
-
+            $name = sprintf('%s::%s', $model->getMetaModel()->getTableName(), $model->get('id'));
             static::$cache[$name] = $model;
+            
             $factory->createItem('metamodels', $name, $item);
         }
     }
 
-
     /**
+     * Create a navigation item for a metamodel item
      * @param CreateItemEvent $event
      */
     public function createItem(CreateItemEvent $event)
@@ -335,14 +286,26 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         }
 
         $value = $model->parseValue('text', $this->renderSetting);
-        var_dump($value);
+        $uri   = $value['jumpTo']['url'];
 
         $item
             ->setLabel($this->generateLabel($model))
-            ->setAttribute('title', $this->generateTitle($model))
-            ->setExtra('model', $model);
+            ->setExtra('model', $model)
+            ->setExtra('value', $value)
+            ->setUri($uri);
 
-        // TODO: set current and trail
+        if($value['class']) {
+            $item->setLabelAttribute('class', $value['class']);
+        }
+
+        $this->renderAttributeMapping($item, $value);
+
+        if($uri == \Environment::get('request')) {
+            $item->setCurrent(true);
+            $item->getParent()
+                ->setTrail(true)
+                ->setCurrent(false);
+        }
     }
 
 
@@ -354,7 +317,7 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         $filter = $this->metaModel->getEmptyFilter();
 
         if ($this->filter) {
-            $filter->addFilterRule($this->filter, $this->filterParams);
+            $this->filter->addRules($filter, array());
         }
 
         $sortBy = '';
@@ -367,7 +330,7 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
             }
         }
 
-        return $this->metaModel->findByFilter($filter, $sortBy, 0, 0, $this->sortDirection);
+        return $this->metaModel->findByFilter($filter, $sortBy, 0, 0, $this->sortDirection, $this->getAttributeNames());
     }
 
 
@@ -375,87 +338,30 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
      * @param $model
      * @return string
      */
-    private function generateLabel(IItem $model)
+    protected function generateLabel(IItem $model)
     {
-        $values = array();
+        $templateName = $this->renderSetting->get('template');
+        $format       = $this->getOutputFormat();
 
-        foreach ($this->labelAttributes as $config) {
-            $attribute = $this->metaModel->getAttributeById($config['id']);
+        $data         = array(
+            'settings' => $this->renderSetting,
+            'item'     => $model->parseValue($format, $this->renderSetting),
+        );
 
-            if(!$attribute) {
-                continue;
-            }
-
-            $values[]  = $model->get($attribute->getColName());
-        }
-
-        if ($this->labelPattern) {
-            $label = vsprintf($this->labelPattern, $values);
-        }
-        else {
-            $label = implode(' ', $values);
-        }
-
-        $label = $this->replaceInsertTags($label);
-
-        return $label;
+        return Template::render($templateName, $format, $data);
     }
-
-
-    /**
-     * @param IItem $model
-     * @return string
-     */
-    private function generateTitle(IItem $model)
-    {
-        $values = array();
-
-        if ($this->titleAttributes) {
-            foreach($this->titleAttributes as $config) {
-                $attribute = $this->metaModel->getAttributeById($config['id']);
-
-                if (!$attribute) {
-                    continue;
-                }
-
-                $parsed = $model->parseAttribute($attribute->getColName(), $config['format'], $this->renderSetting);
-
-                if (isset($parsed[$config['format']])) {
-                    $values[] = isset($parsed[$config['format']]);
-                }
-                else {
-                    $values[] = $model->get($attribute->getColName());
-                }
-            }
-
-            if ($this->titlePattern) {
-                $label = vsprintf($this->titlePattern, $values);
-            }
-            else {
-                $label = implode(' ', $values);
-            }
-
-            $label = $this->replaceInsertTags($label);
-        }
-        else {
-            $label = $this->generateLabel($model);
-        }
-
-        return specialchars($label);
-    }
-
 
     /**
      * @param $name
      * @return IItem|null
      */
-    private function loadModel($name)
+    protected function loadModel($name)
     {
         if(isset(static::$cache[$name])) {
             return static::$cache[$name];
         }
 
-        list($table, $id) = explode(':', $name, 2);
+        list($table, $id) = explode('::', $name, 2);
 
         if($table != $this->metaModel->getTableName()) {
             return null;
@@ -464,4 +370,93 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         return $this->metaModel->findById($id);
     }
 
+    /**
+     * @return mixed|null|string
+     */
+    protected function getOutputFormat()
+    {
+        $format = $this->renderSetting->get('format');
+
+        if($format) {
+            return $format;
+        }
+
+        if (TL_MODE == 'FE' && is_object($GLOBALS['objPage']) && $GLOBALS['objPage']->outputFormat) {
+            return $GLOBALS['objPage']->outputFormat;
+        }
+
+        return 'text';
+    }
+    
+    /**
+     * @param ItemInterface $item
+     * @param array $values
+     */
+    protected function renderAttributeMapping(ItemInterface $item, array $values)
+    {
+        foreach ($this->attributeMapping[static::ATTRIBUTE_TYPE_LABEL] as $name => $mapping) {
+            /** @var IAttribute $attribute */
+            $attribute = $mapping['attribute'];
+            $colName   = $attribute->getColName();
+
+            $item->setLabelAttribute($name, specialchars($values[$mapping['format']][$colName]));
+        }
+
+        foreach ($this->attributeMapping[static::ATTRIBUTE_TYPE_LINK] as $name => $mapping) {
+            /** @var IAttribute $attribute */
+            $attribute = $mapping['attribute'];
+            $colName   = $attribute->getColName();
+
+            $item->setLinkAttribute($name, specialchars($values[$mapping['format']][$colName]));
+        }
+
+        foreach ($this->attributeMapping[static::ATTRIBUTE_TYPE_ITEM] as $name => $mapping) {
+            /** @var IAttribute $attribute */
+            $attribute = $mapping['attribute'];
+            $colName   = $attribute->getColName();
+
+            $item->setAttribute($name, specialchars($values[$mapping['format']][$colName]));
+        }
+    }
+
+    /**
+     * Return all attributes that shall be fetched from the MetaModel.
+     *
+     * In this base implementation, this only includes the attributes mentioned in the render setting.
+     *
+     * @author     Christian Schiffler <c.schiffler@cyberspectrum.de>
+     * @copyright  The MetaModels team.
+     * @see        MetaModels::getAttributeNames
+     * @return     string[] the names of the attributes to be fetched.
+     */
+    protected function getAttributeNames()
+    {
+        $arrAttributes = $this->renderSetting->getSettingNames();
+
+        // Get the right jumpTo.
+        $desiredLanguage  = $this->getMetaModel()->getActiveLanguage();
+        $strFallbackLanguage = $this->getMetaModel()->getFallbackLanguage();
+
+        $filterSetting = 0;
+
+        foreach ((array)$this->renderSetting->get('jumpTo') as $jumpTo) {
+            // If either desired language or fallback, keep the result.
+            if (!$this->getMetaModel()->isTranslated()
+                || $jumpTo['langcode'] == $desiredLanguage
+                || $jumpTo['langcode'] == $strFallbackLanguage) {
+                $filterSetting = $jumpTo['filter'];
+                // If the desired language, break. Otherwise try to get the desired one until all have been evaluated.
+                if ($desiredLanguage == $jumpTo['langcode']) {
+                    break;
+                }
+            }
+        }
+
+        if ($filterSetting) {
+            $objFilterSettings = MetaModelsFilterFactory::byId($filterSetting);
+            $arrAttributes     = array_merge($objFilterSettings->getReferencedAttributes(), $arrAttributes);
+        }
+
+        return $arrAttributes;
+    }
 } 
