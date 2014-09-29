@@ -267,7 +267,7 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         $factory    = $event->getFactory();
 
         foreach($collection as $model) {
-            $name = sprintf('%s::%s', $model->getMetaModel()->getTableName(), $model->get('id'));
+            $name = sprintf('%s::%s::%s', $model->getMetaModel()->getTableName(), $model->get('id'), $this->providerId);
             static::$cache[$name] = $model;
             
             $factory->createItem('metamodels', $name, $item);
@@ -283,7 +283,7 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         $item = $event->getItem();
         $name = $item->getName();
 
-        if($item->getType() != 'metamodels' || $item->getExtra('provider') != $this->providerId) {
+        if($item->getType() != 'metamodels') {
             return;
         }
 
@@ -367,11 +367,15 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
      */
     protected function loadModel($name)
     {
+        list($table, $id, $providerId) = explode('::', $name, 3);
+
+        if($providerId != $this->providerId) {
+            return null;
+        }
+
         if(isset(static::$cache[$name])) {
             return static::$cache[$name];
         }
-
-        list($table, $id) = explode('::', $name, 2);
 
         if($table != $this->metaModel->getTableName()) {
             return null;
