@@ -62,6 +62,11 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
      */
     protected $renderSetting;
 
+    /**
+     * @var int
+     */
+    protected $providerId;
+
 
     /**
      * @var array
@@ -80,21 +85,24 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
 
     /**
      * @param IMetaModel $metaModel
+     * @param $providerId
      */
-    public function __construct(IMetaModel $metaModel)
+    public function __construct(IMetaModel $metaModel, $providerId)
     {
         parent::__construct();
 
-        $this->metaModel = $metaModel;
+        $this->metaModel  = $metaModel;
+        $this->providerId = $providerId;
     }
 
     /**
      * @param IMetaModel $metaModel
+     * @param $providerId
      * @return MetaModelsProvider
      */
-    public static function create(IMetaModel $metaModel)
+    public static function create(IMetaModel $metaModel, $providerId)
     {
-        $provider = new static($metaModel);
+        $provider = new static($metaModel, $providerId);
 
         return $provider;
     }
@@ -275,7 +283,7 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         $item = $event->getItem();
         $name = $item->getName();
 
-        if($item->getType() != 'metamodels') {
+        if($item->getType() != 'metamodels' || $item->getExtra('provider') != $this->providerId) {
             return;
         }
 
@@ -292,6 +300,7 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
             ->setLabel($this->generateLabel($model))
             ->setExtra('model', $model)
             ->setExtra('value', $value)
+            ->setExtra('provider', $this->providerId)
             ->setUri($uri);
 
         if($value['class']) {

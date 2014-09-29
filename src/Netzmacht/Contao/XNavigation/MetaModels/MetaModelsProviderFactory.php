@@ -49,7 +49,7 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
             return;
         }
 
-        $provider = MetaModelsProvider::create($metaModel)
+        $provider = MetaModelsProvider::create($metaModel, $model->id)
             ->setParent($model->mm_parent_type, $model->mm_parent_page);
 
         $attributeMappings = deserialize($model->mm_attributes, true);
