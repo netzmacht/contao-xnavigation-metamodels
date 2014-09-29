@@ -25,5 +25,6 @@ Usage
 * Create a new item provider for the metamodel
 * Choose the parent page and the created render setting.
 * Add the created provider to you menu
+* Adjust or used item condition
 
 That's it.
