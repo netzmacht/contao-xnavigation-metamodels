@@ -371,7 +371,7 @@ class MetaModelsProvider extends \Controller implements EventSubscriberInterface
         list($table, $id, $providerId) = explode('::', $name, 3);
 
         if ($providerId != $this->providerId) {
-            // prevent that wrong model is loaded
+            // prevent that item for which this provider is not responsible will handle the model
             return null;
         }
 
