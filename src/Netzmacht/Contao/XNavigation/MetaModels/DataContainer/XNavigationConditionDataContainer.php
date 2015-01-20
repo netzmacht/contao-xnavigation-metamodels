@@ -9,13 +9,18 @@
 namespace Netzmacht\Contao\XNavigation\MetaModels\DataContainer;
 
 
-use MetaModels\Factory;
-
 class XNavigationConditionDataContainer
 {
     public function getMetaModels()
     {
-        return Factory::getAllTables();
+        $values = array();
+        $result = \Database::getInstance()->query('SELECT id,name FROM tl_metamodel ORDER BY name');
+
+        while ($result->next()) {
+            $values[$result->id] = $result->name;
+        }
+
+        return $values;
     }
 
 } 

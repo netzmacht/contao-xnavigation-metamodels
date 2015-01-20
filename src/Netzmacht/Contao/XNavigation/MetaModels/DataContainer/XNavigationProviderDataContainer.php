@@ -29,8 +29,14 @@ class XNavigationProviderDataContainer
      */
     public function getMetaModels()
     {
-        return $this->metaModelsFactory->getAllTables();
-    }
+        $values = array();
+        $result = \Database::getInstance()->query('SELECT id,name FROM tl_metamodel ORDER BY name');
+
+        while ($result->next()) {
+            $values[$result->id] = $result->name;
+        }
+
+        return $values;    }
 
 
     /**
