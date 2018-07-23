@@ -11,9 +11,9 @@ namespace Netzmacht\Contao\XNavigation\MetaModels;
 
 use Bit3\Contao\XNavigation\Event\CreateProviderEvent;
 use MetaModels\Factory as MetaModelsFactory;
-use MetaModels\Filter\Setting\Factory as MetaModelsFilterFactory;
 use MetaModels\Filter\Setting\ICollection as MetaModelsFilterCollection;
-use MetaModels\Render\Setting\Factory;
+use MetaModels\Filter\Setting\FilterSettingFactory;
+use MetaModels\Render\Setting\RenderSettingFactory;
 use Netzmacht\Contao\XNavigation\MetaModels\Provider\MetaModelsProvider;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -42,7 +42,9 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
             return;
         }
 
-        $metaModel = MetaModelsFactory::byId($model->mm_metamodel);
+        $factory       = new MetaModelsFactory();
+        $metaModelName = $factory->translateIdToMetaModelName($model->mm_metamodel);
+        $metaModel     = $factory->getMetaModel($metaModelName);
 
         // metamodel does not exists. break it here
         if (!$metaModel) {
@@ -60,8 +62,9 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
         }
 
         if ($model->mm_filter) {
-            $filter = MetaModelsFilterFactory::byId($model->mm_filter);
-            $params = $this->createFilterParams($filter);
+            $filterFactory = new FilterSettingFactory();
+            $filter        = $filterFactory->createCollection($metaModelName->mm_filter);
+            $params        = $this->createFilterParams($filter);
 
             if($filter) {
                 $provider->setFilter($filter, $params);
@@ -69,7 +72,8 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
         }
 
         if($model->mm_render_setting) {
-            $renderSetting = Factory::byId($metaModel, $model->mm_render_setting);
+            $renderFactory = new RenderSettingFactory();
+            $renderSetting = $renderFactory->createCollection($metaModel, $model->mm_render_setting);
             $provider->setRenderSetting($renderSetting);
         }
 
