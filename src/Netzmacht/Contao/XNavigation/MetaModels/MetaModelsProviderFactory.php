@@ -19,6 +19,33 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class MetaModelsProviderFactory implements EventSubscriberInterface
 {
+    /**
+     * @var MetaModelsFactory
+     */
+    private $metaModelFactory;
+
+    /**
+     * @var FilterSettingFactory
+     */
+    private $metaModelFilterSettingFactory;
+
+    /**
+     * @var RenderSettingFactory
+     */
+    private $metaModelRenderSettingFactory;
+
+    /**
+     * MetaModelsProviderFactory constructor.
+     */
+    public function __construct()
+    {
+        $container = $GLOBALS['container'];
+
+        $this->metaModelFactory              = $container['metamodels-factory.factory'];
+        $this->metaModelFilterSettingFactory = $container['metamodels-filter-setting-factory.factory'];
+        $this->metaModelRenderSettingFactory = $container['metamodels-render-setting-factory.factory'];
+    }
+
 
     /**
      * {@inheritdoc}
@@ -42,9 +69,8 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
             return;
         }
 
-        $factory       = new MetaModelsFactory();
-        $metaModelName = $factory->translateIdToMetaModelName($model->mm_metamodel);
-        $metaModel     = $factory->getMetaModel($metaModelName);
+        $metaModelName = $this->metaModelFactory->translateIdToMetaModelName($model->mm_metamodel);
+        $metaModel     = $this->metaModelFactory->getMetaModel($metaModelName);
 
         // metamodel does not exists. break it here
         if (!$metaModel) {
@@ -62,9 +88,8 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
         }
 
         if ($model->mm_filter) {
-            $filterFactory = new FilterSettingFactory();
-            $filter        = $filterFactory->createCollection($metaModelName->mm_filter);
-            $params        = $this->createFilterParams($filter);
+            $filter = $this->metaModelFilterSettingFactory->createCollection($metaModelName->mm_filter);
+            $params = $this->createFilterParams($filter);
 
             if($filter) {
                 $provider->setFilter($filter, $params);
@@ -72,8 +97,9 @@ class MetaModelsProviderFactory implements EventSubscriberInterface
         }
 
         if($model->mm_render_setting) {
-            $renderFactory = new RenderSettingFactory();
-            $renderSetting = $renderFactory->createCollection($metaModel, $model->mm_render_setting);
+            $renderSetting = $this->metaModelRenderSettingFactory
+                ->createCollection($metaModel, $model->mm_render_setting);
+
             $provider->setRenderSetting($renderSetting);
         }
 
